@@ -6,12 +6,14 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"runtime/debug"
 )
 
 // Handler handles incoming webhook events
 type Handler struct {
 	logger               *slog.Logger
 	idempotencyStore     IdempotencyStore
+	panicRecovery        bool
 	onPixMovement        func(*PixMovementEvent) error
 	onScheduledPix       func(*ScheduledPixEvent) error
 	onPrecautionaryBlock func(*PrecautionaryBlockEvent) error
@@ -92,6 +94,15 @@ func WithIdempotencyStore(store IdempotencyStore) HandlerOption {
 	}
 }
 
+// WithPanicRecovery enables panic recovery middleware.
+// When enabled, panics in handlers are caught and logged (if a logger is configured),
+// returning a 500 Internal Server Error instead of crashing the server.
+func WithPanicRecovery() HandlerOption {
+	return func(h *Handler) {
+		h.panicRecovery = true
+	}
+}
+
 // HandlePixMovement handles PIX movement webhook requests
 func (h *Handler) HandlePixMovement(w http.ResponseWriter, r *http.Request) {
 	h.handleEvent(w, r, EventTypePixMovement)
@@ -123,6 +134,24 @@ func (h *Handler) HandleClaimNotification(w http.ResponseWriter, r *http.Request
 }
 
 func (h *Handler) handleEvent(w http.ResponseWriter, r *http.Request, eventType EventType) {
+	// Panic recovery if enabled
+	if h.panicRecovery {
+		defer func() {
+			if err := recover(); err != nil {
+				stack := debug.Stack()
+				h.logger.Error("panic recovered in webhook handler",
+					"error", fmt.Sprintf("%v", err),
+					"stack", string(stack),
+					"event_type", eventType,
+					"path", r.URL.Path,
+				)
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusInternalServerError)
+				_ = json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
+			}
+		}()
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return

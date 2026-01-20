@@ -451,3 +451,65 @@ func TestClaimStatuses(t *testing.T) {
 		}
 	}
 }
+
+// Panic Recovery Tests
+
+func TestWithPanicRecovery(t *testing.T) {
+	handler := NewHandler(WithPanicRecovery())
+	if !handler.panicRecovery {
+		t.Error("expected panicRecovery to be true")
+	}
+}
+
+func TestPanicRecoveryEnabled(t *testing.T) {
+	handler := NewHandler(
+		WithPanicRecovery(),
+		OnPixMovement(func(e *PixMovementEvent) error {
+			panic("test panic")
+		}),
+	)
+
+	event := PixMovementEvent{AccountID: 12345}
+	body, _ := json.Marshal(event)
+	req := httptest.NewRequest(http.MethodPost, "/webhook/pix-movement", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+
+	// Should not panic due to recovery
+	handler.HandlePixMovement(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("expected status 500, got %d", rec.Code)
+	}
+
+	// Check response body contains error
+	var resp map[string]string
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Errorf("failed to parse response: %v", err)
+	}
+	if resp["error"] != "internal server error" {
+		t.Errorf("expected 'internal server error', got '%s'", resp["error"])
+	}
+}
+
+func TestPanicRecoveryDisabled(t *testing.T) {
+	handler := NewHandler(
+		// No WithPanicRecovery() - panic recovery disabled
+		OnPixMovement(func(e *PixMovementEvent) error {
+			panic("test panic")
+		}),
+	)
+
+	event := PixMovementEvent{AccountID: 12345}
+	body, _ := json.Marshal(event)
+	req := httptest.NewRequest(http.MethodPost, "/webhook/pix-movement", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+
+	// Should panic since recovery is disabled
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("expected panic when recovery is disabled")
+		}
+	}()
+
+	handler.HandlePixMovement(rec, req)
+}
