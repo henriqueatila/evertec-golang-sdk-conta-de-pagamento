@@ -1,0 +1,106 @@
+# .golangci.yml - Evertec SDK Linting Configuration
+
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+  tests: true
+
+linters:
+  enable:
+    # Code Quality & Complexity
+    - gocognit
+    - gocyclo
+    - staticcheck
+    - unconvert
+    - unparam
+
+    # Error & Resource Handling
+    - bodyclose
+    - errchkjson
+    - nilerr
+    - wastedassign
+
+    # Code Style & Practices
+    - dogsled
+    - dupword
+    - misspell
+    - nakedret
+    - prealloc
+    - predeclared
+    - revive
+    - usestdlibvars
+
+    # Security
+    - gosec
+
+linters-settings:
+  gocyclo:
+    min-complexity: 18
+
+  gocognit:
+    min-complexity: 20
+
+  govet:
+    shadow: true
+
+  revive:
+    rules:
+      - name: import-shadowing
+        severity: warning
+      - name: empty-block
+        severity: warning
+      - name: use-any
+        severity: warning
+
+  gosec:
+    excludes:
+      - G104 # Unhandled errors (we handle them appropriately)
+      - G304 # File path from variable (needed for certs)
+
+  nakedret:
+    max-func-lines: 30
+
+  misspell:
+    # Portuguese words used in API constants are not misspellings
+    ignore-words:
+      - operacional
+      - Correspondente
+      - automatico
+      - AUTOMATICO
+      - ANUAL
+      - anual
+
+issues:
+  exclude-rules:
+    # Test files can be more relaxed
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - gocognit
+        - errcheck
+        - errchkjson
+        - gosec
+        - unparam
+
+    # Generated or third-party code
+    - path: internal/mtls
+      linters:
+        - gosec
+
+    # HTTP client and error handling have intentionally high complexity
+    # due to comprehensive case handling
+    - path: client/http\.go
+      linters:
+        - gocognit
+        - gocyclo
+    - path: client/errors\.go
+      linters:
+        - gocognit
+        - gocyclo
+
+  exclude-dirs:
+    - vendor
+    - .git
+
+  max-issues-per-linter: 50
+  max-same-issues: 5
