@@ -147,6 +147,7 @@ func (h *Handler) handleEvent(w http.ResponseWriter, r *http.Request, eventType 
 				)
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusInternalServerError)
+				//nolint:errchkjson // Best-effort response during panic recovery
 				_ = json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
 			}
 		}()
