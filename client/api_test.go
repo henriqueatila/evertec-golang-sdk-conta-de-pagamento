@@ -622,3 +622,105 @@ func TestAPIErrorHandling(t *testing.T) {
 func ptrString(s string) *string {
 	return &s
 }
+
+// ========== ADDITIONAL ACCOUNTS API TESTS (table-driven) ==========
+
+func TestAccountsAdditionalEndpoints(t *testing.T) {
+	runEndpointTests(t, []testEndpoint{
+		{
+			name: "UpdateAccount", method: http.MethodPut, path: "/accounts/1",
+			response: nil,
+			call: func(ctx context.Context, c *Client) error {
+				return c.UpdateAccount(ctx, 1, &types.UpdateAccountRequest{})
+			},
+		},
+		{
+			name: "LinkAccounts", method: http.MethodPost, path: "/accounts/1/link",
+			response: &types.GenericResponse{},
+			call: func(ctx context.Context, c *Client) error {
+				_, err := c.LinkAccounts(ctx, 1, &types.LinkAccountRequest{})
+				return err
+			},
+		},
+		{
+			name: "UnlinkAccounts", method: http.MethodPost, path: "/accounts/unlink",
+			response: &types.GenericResponse{},
+			call: func(ctx context.Context, c *Client) error {
+				_, err := c.UnlinkAccounts(ctx, &types.UnlinkAccountRequest{})
+				return err
+			},
+		},
+		{
+			name: "VerifyAccountExists", method: http.MethodPost, path: "/accounts/verify/exists",
+			response: &types.GenericResponse{},
+			call: func(ctx context.Context, c *Client) error {
+				_, err := c.VerifyAccountExists(ctx, &types.VerifyAccountExistsRequest{})
+				return err
+			},
+		},
+		{
+			name: "GetTransactionDetails", method: http.MethodGet, path: "/accounts/1/statement/100",
+			response: &types.StatementEntry{},
+			call: func(ctx context.Context, c *Client) error {
+				_, err := c.GetTransactionDetails(ctx, 1, 100)
+				return err
+			},
+		},
+		{
+			name: "GetCorporateAccounts", method: http.MethodGet, path: "/accounts/12345678901/corporate",
+			response: &types.CorporateAccountsResponse{},
+			call: func(ctx context.Context, c *Client) error {
+				_, err := c.GetCorporateAccounts(ctx, "12345678901")
+				return err
+			},
+		},
+		{
+			name: "ListBlockedAccounts", method: http.MethodGet, path: "/accounts/list/block",
+			response: &types.AccountListResponse{},
+			call: func(ctx context.Context, c *Client) error {
+				_, err := c.ListBlockedAccounts(ctx)
+				return err
+			},
+		},
+		{
+			name: "TokenGenerateAndValidate", method: http.MethodPost, path: "/accounts/tokens/generate/sms",
+			response: &types.TokenOperationResponse{},
+			call: func(ctx context.Context, c *Client) error {
+				_, err := c.TokenGenerateAndValidate(ctx, "generate", "sms", &types.TokenOperationRequest{})
+				return err
+			},
+		},
+		{
+			name: "GetAccountProposalData", method: http.MethodGet, path: "/accounts/1/proposalAccount/data",
+			response: &types.ProposalDataResponse{},
+			call: func(ctx context.Context, c *Client) error {
+				_, err := c.GetAccountProposalData(ctx, 1)
+				return err
+			},
+		},
+		{
+			name: "CreateCompanyAccount", method: http.MethodPost, path: "/accounts/company",
+			response: &types.CreateAccountResponse{},
+			call: func(ctx context.Context, c *Client) error {
+				_, err := c.CreateCompanyAccount(ctx, &types.CreateCompanyAccountRequest{})
+				return err
+			},
+		},
+		{
+			name: "GetTransactionsByType", method: http.MethodGet, path: "/transactions/pix",
+			response: &types.TransactionListResponse{},
+			call: func(ctx context.Context, c *Client) error {
+				_, err := c.GetTransactionsByType(ctx, "pix")
+				return err
+			},
+		},
+		{
+			name: "ListBalanceLocks", method: http.MethodGet, path: "/accounts/balanceLock/list",
+			response: &types.BalanceLockListResponse{},
+			call: func(ctx context.Context, c *Client) error {
+				_, err := c.ListBalanceLocks(ctx)
+				return err
+			},
+		},
+	})
+}

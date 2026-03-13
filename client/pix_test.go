@@ -908,3 +908,31 @@ func TestReceivePixCallback(t *testing.T) {
 		t.Errorf("response Processed = %v; want %v", response.Processed, true)
 	}
 }
+
+func TestPixKeyEndpoints(t *testing.T) {
+	runEndpointTests(t, []testEndpoint{
+		{
+			name: "CreatePixKey", method: http.MethodPost, path: "/accounts/1/createKey",
+			response: &types.PixKeyResponse{},
+			call: func(ctx context.Context, c *Client) error {
+				_, err := c.CreatePixKey(ctx, 1, &types.CreatePixKeyRequest{})
+				return err
+			},
+		},
+		{
+			name: "DeletePixKey", method: http.MethodPost, path: "/accounts/1/deleteKey",
+			response: nil,
+			call: func(ctx context.Context, c *Client) error {
+				return c.DeletePixKey(ctx, 1, &types.DeletePixKeyRequest{})
+			},
+		},
+		{
+			name: "GetPixKeys", method: http.MethodGet, path: "/accounts/1/getKeys",
+			response: &types.PixKeyListResponse{},
+			call: func(ctx context.Context, c *Client) error {
+				_, err := c.GetPixKeys(ctx, 1)
+				return err
+			},
+		},
+	})
+}
